@@ -307,8 +307,10 @@ export const getServerSideProps: GetServerSideProps = async ({ locale, query }) 
   const sortBy = typeof query.sort_by === 'string' ? query.sort_by : 'all'
   const pageViewCount = await getPageViewCount('/knowledge-base/')
   const posts = await getAllBlogs(sortBy, locale ?? 'en').then(post =>
-    post.map(p => ({
+    post.map(({content, ...p}) => ({
       ...p,
+      // omit article content to reduce props size
+      content: "",
       pageView: pageViewCount[p.slug] ?? 0,
     })),
   )
