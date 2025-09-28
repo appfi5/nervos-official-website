@@ -29,19 +29,20 @@ type Props = {
   categories: Array<string>
 }
 
+/* eslint-disable-next-line @typescript-eslint/unbound-method */
+const formatTime = (dateStr: string) => {
+  const date = new Date(dateStr.replace(" T", "T"));
+  try {
+    return getTimeFormatter().format(date)
+  } catch (e) {
+    console.error(`failed to format date: ${dateStr}`)
+    return ''
+  }
+}
+
 const Post = ({ post, recents, categories }: Props) => {
   const router = useRouter()
   const [t] = useTranslation(['knowledge-base'])
-
-  /* eslint-disable-next-line @typescript-eslint/unbound-method */
-  const formatTime = (date: Date) => {
-    try {
-      return getTimeFormatter().format(date)
-    } catch (e) {
-      console.error(`failed to format date: ${date.toString()}`)
-      return ''
-    }
-  }
 
   const [isAuthorListExpanded, setIsAuthorListExpanded] = useState<boolean>(false)
   const toggleAuthorListExpanded = () => {
@@ -102,7 +103,7 @@ const Post = ({ post, recents, categories }: Props) => {
                     {post.authors.length > 1 ? ' etc.' : ''}
                   </b>
                   <span className={styles.separator}>·</span>
-                  <time>{formatTime(new Date(post.date))}</time>
+                  <time>{formatTime(post.date)}</time>
                 </div>
                 <div>
                   <img src="/images/clock.svg" className={styles.clock} />
