@@ -65,7 +65,7 @@ const useAritclePageList = (page = 1, sortBy = "all") => {
     setLoading(true)
     fetch(`/api/articles?page=${page}&sort_by=${sortBy}&locale=${language}`)
       .then((res) => res.json())
-      .then((resData) => {
+      .then((resData: ArticlesResponse) => {
         setPageData(resData)
       })
       .finally(() => {
