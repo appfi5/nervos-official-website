@@ -302,12 +302,25 @@ const Index = ({ posts, populars, categories, pageCount }: Props) => {
   )
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ locale, query }) => {
+export const getServerSideProps: GetServerSideProps = async ({ req, locale, query }) => {
   const pageNo = Number(query.page ?? '1')
   const sortBy = typeof query.sort_by === 'string' ? query.sort_by : 'all'
+  const lng = await serverSideTranslations(locale ?? 'en', ['common', 'knowledge-base'])
+  const props: Props = {
+    ...lng,
+    posts: [],
+    populars: [],
+    categories: [],
+    pageCount: 0,
+  }
+
+  if (req.method === "OPTIONS") {
+    return { props }
+  }
+
   const pageViewCount = await getPageViewCount('/knowledge-base/')
   const posts = await getAllBlogs(sortBy, locale ?? 'en').then(post =>
-    post.map(({content, ...p}) => ({
+    post.map(({ content, ...p }) => ({
       ...p,
       // omit article content to reduce props size
       content: "",
@@ -315,18 +328,12 @@ export const getServerSideProps: GetServerSideProps = async ({ locale, query }) 
     })),
   )
 
-  const populars = posts.filter(post => post.category?.toLowerCase().includes('popular'))
   const categories = getCategoriesFromBlogs(posts)
-  const pageCount = Math.ceil(posts.length / PAGE_SIZE)
-  const lng = await serverSideTranslations(locale ?? 'en', ['common', 'knowledge-base'])
 
-  const props: Props = {
-    ...lng,
-    posts: posts.slice(PAGE_SIZE * (pageNo - 1), PAGE_SIZE * pageNo),
-    populars,
-    categories: ['all', ...categories, 'newest post', 'oldest post'],
-    pageCount,
-  }
+  props.posts = posts.slice(PAGE_SIZE * (pageNo - 1), PAGE_SIZE * pageNo)
+  props.populars = posts.filter(post => post.category?.toLowerCase().includes('popular'))
+  props.categories = ['all', ...categories, 'newest post', 'oldest post']
+  props.pageCount = Math.ceil(posts.length / PAGE_SIZE)
 
   return { props }
 }
