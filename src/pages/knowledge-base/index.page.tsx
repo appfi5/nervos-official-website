@@ -6,7 +6,7 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Pagination from 'src/components/Pagination'
 import ExpandedAuthors from 'src/components/KnowledgeBase/ExpandedAuthorList'
-import { SyntheticEvent, useState } from 'react'
+import { SyntheticEvent, useEffect, useState } from 'react'
 import Category from '../../components/Category'
 import { Page } from '../../components/Page'
 import { BASE_URL, getTimeFormatter } from '../../utils'
@@ -15,12 +15,11 @@ import { getPageViewCount } from '../../utils/gadata'
 import styles from './index.module.scss'
 import EmbellishedLeft from './embellished_left.svg'
 import EmbellishedRight from './embellished_right.svg'
+import { ArticlesResponse } from '../api/articles/index.page'
 
 type Props = {
-  categories: Array<string>
-  posts: Array<Blog>
-  populars: Array<Blog>
-  pageCount: number
+  page: number
+  sortBy: string
 }
 
 type BlogType = 'popular' | 'list'
@@ -58,12 +57,39 @@ const handleCoverNotFound = (e: React.SyntheticEvent<HTMLImageElement>) => {
   img.src = rawImageUrl
 }
 
-const Index = ({ posts, populars, categories, pageCount }: Props) => {
+const useAritclePageList = (page = 1, sortBy = "all") => {
+  const [loading, setLoading] = useState(false)
+  const [t, { language }] = useTranslation(['knowledge-base'])
+  const [pageData, setPageData] = useState<Partial<ArticlesResponse>>({})
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/articles?page=${page}&sort_by=${sortBy}&locale=${language}`)
+      .then((res) => res.json())
+      .then((resData) => {
+        setPageData(resData)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [page, sortBy, language])
+  return {
+    loading,
+    total: pageData.total ?? 0,
+    posts: pageData.data ?? [],
+    populars: pageData.populars ?? [],
+    categories: ['all', ...(pageData.categories ?? []), 'newest post', 'oldest post'],
+    current: pageData.current ?? 1,
+    pageSize: pageData.pageSize ?? PAGE_SIZE,
+  }
+}
+
+const Index = ({ page, sortBy }: Props) => { // populars, categories, pageCount, 
   const [postsToExpandAuthorList, setPostsToExpandAuthorList] = useState<string[]>([])
   const getBlogKey = (post: Blog, type: BlogType) => `${type}-${post.slug}`
   const shouldExpandAuthorList = (post: Blog, type: BlogType) =>
     postsToExpandAuthorList.findIndex(item => item === getBlogKey(post, type)) !== -1
   const [t, { language }] = useTranslation(['knowledge-base'])
+  const { total, posts, pageSize, populars, categories } = useAritclePageList(page, sortBy);
   /* eslint-disable-next-line @typescript-eslint/unbound-method */
   const formatTime = (date: Date) => {
     try {
@@ -295,7 +321,7 @@ const Index = ({ posts, populars, categories, pageCount }: Props) => {
               </Link>
             ))}
           </div>
-          <Pagination pageCount={pageCount} />
+          <Pagination pageCount={Math.ceil(total / pageSize)} />
         </div>
       </Page>
     </>
@@ -305,27 +331,12 @@ const Index = ({ posts, populars, categories, pageCount }: Props) => {
 export const getServerSideProps: GetServerSideProps = async ({ locale, query }) => {
   const pageNo = Number(query.page ?? '1')
   const sortBy = typeof query.sort_by === 'string' ? query.sort_by : 'all'
-  const pageViewCount = await getPageViewCount('/knowledge-base/')
-  const posts = await getAllBlogs(sortBy, locale ?? 'en').then(post =>
-    post.map(({content, ...p}) => ({
-      ...p,
-      // omit article content to reduce props size
-      content: "",
-      pageView: pageViewCount[p.slug] ?? 0,
-    })),
-  )
-
-  const populars = posts.filter(post => post.category?.toLowerCase().includes('popular'))
-  const categories = getCategoriesFromBlogs(posts)
-  const pageCount = Math.ceil(posts.length / PAGE_SIZE)
   const lng = await serverSideTranslations(locale ?? 'en', ['common', 'knowledge-base'])
 
   const props: Props = {
     ...lng,
-    posts: posts.slice(PAGE_SIZE * (pageNo - 1), PAGE_SIZE * pageNo),
-    populars,
-    categories: ['all', ...categories, 'newest post', 'oldest post'],
-    pageCount,
+    page: pageNo,
+    sortBy,
   }
 
   return { props }
