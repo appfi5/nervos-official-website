@@ -394,7 +394,7 @@ const SlideGetStarted: FC<ScreenSlideProps> = props => {
                 <Card
                   title={t('axon.title')}
                   actions={
-                    <a href="https://axonweb3.io/" className={styles.link} target="_blank" rel="noreferrer">
+                    <a href="https://github.com/axonweb3/axon" className={styles.link} target="_blank" rel="noreferrer">
                       {t('axon.name')} <ObliqueArrowIcon />
                     </a>
                   }
@@ -450,7 +450,7 @@ const SlideGetStarted: FC<ScreenSlideProps> = props => {
           <Card
             title={t('axon.title')}
             actions={
-              <a href="https://axonweb3.io/" className={styles.link} target="_blank" rel="noreferrer">
+              <a href="https://github.com/axonweb3/axon" className={styles.link} target="_blank" rel="noreferrer">
                 {t('axon.name')} <ObliqueArrowIcon />
               </a>
             }
